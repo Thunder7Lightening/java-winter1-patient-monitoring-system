@@ -8,7 +8,8 @@ public class Main
 	
 	public static void main(String[] args) throws Exception
 	{	
-		monitor.setUp(new File("sampleInput"));
+//		monitor.setUp(new File("sampleInput"));
+		monitor.setUp(new File(args[0]));
 		monitor.run();
 		monitor.showDatabase();
 	}
