@@ -7,18 +7,28 @@ public class Monitor
 	public Scanner input;
 	public int _period;
 	public ArrayList<Device> _devices = new ArrayList<>();
+	public ArrayList<Record> _database = new ArrayList<>();
 	
 	public void setUp(File inputFile) throws Exception
 	{
 		input = new Scanner(inputFile);
-		
 		setPeriod();
-		
 		while(input.hasNext())
 		{
 			Patient patient = createPatient();
 			Device device = createDeviceAndAttachToPatient(patient);
 			_devices.add(device);
+		}
+		initDatabase();
+	}
+	
+	private void initDatabase()
+	{
+		for(Device device : _devices)
+		{
+			Patient patient = device.patient();
+			Record record = new Record(patient, device);
+			_database.add(record);
 		}
 	}
 	
@@ -27,16 +37,16 @@ public class Monitor
 		_period = Integer.parseInt(input.next());
 	}
 	
-	private Patient createPatient()
+	private Patient createPatient() throws Exception
 	{
-		Patient ret = null;
 		if(input.next().equals("patient"))
 		{
 			String patientName = input.next();
 			int patientPeriod = Integer.parseInt(input.next());
-			ret = new Patient(patientName, patientPeriod);
+			return new Patient(patientName, patientPeriod);
 		}
-		return ret;
+		else
+			throw new Exception("Please type patient when creating a patient.");
 	}
 	
 	private Device createDeviceAndAttachToPatient(Patient patient)
@@ -60,6 +70,15 @@ public class Monitor
 				if(time % patient.period() == 0)
 				{
 					float factorValue = device.getFactorValue();
+					// keep an element of record in database
+					RecordElement element = new RecordElement(time, factorValue);
+					Record record = findSpecifiedRecordInDataBase(patient, device);
+					if(record != null)
+					{
+						record.addElement(element);
+					}
+					
+					// decide whether show alarms
 					if(factorValue < 0) // device falls
 					{
 						System.out.println("[" + time + "] " +  device.name() + " falls");
@@ -70,6 +89,27 @@ public class Monitor
 					}
 				}
 			}
+		}
+	}
+	
+	private Record findSpecifiedRecordInDataBase(Patient patient, Device device)
+	{
+		for(Record record : _database)
+		{
+			if(patient.name().equals(record.patient().name()) && device.name().equals(record.device().name()))
+			{
+				return record;
+			}
+		}
+		return null;
+	}
+	
+	
+	public void showDatabase()
+	{
+		for(Record record : _database)
+		{
+			record.print();
 		}
 	}
 	

@@ -10,6 +10,7 @@ public class Main
 	{	
 		monitor.setUp(new File("sampleInput"));
 		monitor.run();
+		monitor.showDatabase();
 	}
 	
 //	public static void testInputFile()
