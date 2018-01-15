@@ -3,12 +3,12 @@ import java.util.Scanner;
 
 public class Device
 {
-	public String _category;
-	public String _name;
-	public Scanner _dataset;
-	public int _lowerBound;
-	public int _upperBound;
-	public Patient _patient;
+	private String _category;
+	private String _name;
+	private Scanner _dataset;
+	private int _lowerBound;
+	private int _upperBound;
+	private Patient _patient;
 	
 	public Device(String category, String name, File datasetFile, int lowerBound, int upperBound, Patient patient)
 	{

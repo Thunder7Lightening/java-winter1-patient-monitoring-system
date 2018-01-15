@@ -4,37 +4,33 @@ import java.util.Scanner;
 
 public class Monitor
 {
-	public Scanner input;
-	public int _period;
-	public ArrayList<Device> _devices = new ArrayList<>();
-	public ArrayList<Record> _database = new ArrayList<>();
+	private int _time;
+	private Scanner input;
+	private int _period;
+	private ArrayList<Device> _devices = new ArrayList<>();
+	private Database _database = new Database();
 	
 	public void setUp(File inputFile) throws Exception
 	{
 		input = new Scanner(inputFile);
 		setPeriod();
+		setDevices();
+		initDatabase();
+	}
+	
+	private void setPeriod()
+	{
+		_period = Integer.parseInt(input.next());
+	}
+	
+	private void setDevices() throws Exception
+	{
 		while(input.hasNext())
 		{
 			Patient patient = createPatient();
 			Device device = createDeviceAndAttachToPatient(patient);
 			_devices.add(device);
 		}
-		initDatabase();
-	}
-	
-	private void initDatabase()
-	{
-		for(Device device : _devices)
-		{
-			Patient patient = device.patient();
-			Record record = new Record(patient, device);
-			_database.add(record);
-		}
-	}
-	
-	private void setPeriod()
-	{
-		_period = Integer.parseInt(input.next());
 	}
 	
 	private Patient createPatient() throws Exception
@@ -59,58 +55,80 @@ public class Monitor
 		return new Device(deviceCategory, deviceName, new File(deviceDatasetFileName), deviceLowerBound, deviceUpperBound, patient);
 	}
 	
+	private void initDatabase()
+	{
+		_database.init(_devices);
+	}
+	
 	public void run()
 	{
-		for(int time = 0; time <= _period; time++)
+		for(_time = 0; _time <= _period; _time++)
 		{
 			for(Device device : _devices)
 			{
 				Patient patient = device.patient();
-				
-				if(time % patient.period() == 0)
+				if(_time % patient.period() == 0)
 				{
 					float factorValue = device.getFactorValue();
-					// keep an element of record in database
-					RecordElement element = new RecordElement(time, factorValue);
-					Record record = findSpecifiedRecordInDataBase(patient, device);
-					if(record != null)
-					{
-						record.addElement(element);
-					}
-					
-					// decide whether show alarms
-					if(factorValue < 0) // device falls
-					{
-						System.out.println("[" + time + "] " +  device.name() + " falls");
-					}
-					else if(factorValue < device.lowerBound() || factorValue > device.upperBound()) // patients are in danger.(out of safety range)
-					{
-						System.out.println("[" + time + "] " +  patient.name() + " is in danger! Cause: " + device.name() + " " +  factorValue);			
-					}
+					keepARecordElementIntoDatabase(factorValue, patient, device);
+					showAlarmMessagesWhenFactorValueIsStrange(factorValue, patient, device);	
 				}
 			}
 		}
 	}
+
+	private void keepARecordElementIntoDatabase(float factorValue, Patient patient, Device device)
+	{
+		RecordElement element = new RecordElement(_time, factorValue);
+		Record record = findSpecifiedRecordInDataBase(patient, device);
+		if(record != null)
+			record.addElement(element);
+	}
 	
 	private Record findSpecifiedRecordInDataBase(Patient patient, Device device)
 	{
-		for(Record record : _database)
-		{
-			if(patient.name().equals(record.patient().name()) && device.name().equals(record.device().name()))
-			{
+		for(Record record : _database.records())
+			if(arePatientAndDeviceInRecord(patient, device, record))
 				return record;
-			}
-		}
 		return null;
 	}
+
+	private boolean arePatientAndDeviceInRecord(Patient patient, Device device, Record record)
+	{
+		return isPatientInRecord(patient, record) && isDeviceInRecord(device, record);
+	}
 	
+	private boolean isPatientInRecord(Patient patient, Record record)
+	{
+		return patient.name().equals(record.patient().name());
+	}
+
+	private boolean isDeviceInRecord(Device device, Record record)
+	{
+		return device.name().equals(record.device().name());
+	}
+	
+	private void showAlarmMessagesWhenFactorValueIsStrange(float factorValue, Patient patient, Device device)
+	{
+		if(doesDeviceFall(factorValue))
+			System.out.println("[" + _time + "] " +  device.name() + " falls");
+		else if(isFactorValueOutOfSafetyRange(factorValue, device))
+			System.out.println("[" + _time + "] " +  patient.name() + " is in danger! Cause: " + device.name() + " " +  factorValue);
+	}
+
+	private boolean doesDeviceFall(float factorValue)
+	{
+		return factorValue < 0;
+	}
+
+	private boolean isFactorValueOutOfSafetyRange(float factorValue, Device device)
+	{
+		return factorValue < device.lowerBound() || factorValue > device.upperBound();
+	}
 	
 	public void showDatabase()
 	{
-		for(Record record : _database)
-		{
-			record.print();
-		}
+		_database.print();
 	}
 	
 	
